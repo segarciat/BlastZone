@@ -1,76 +1,52 @@
 import pygame as pg
+import typing
 
-import src.config as cfg
-from src.sprites.spriteW import SpriteW, collide_hit_rect
+import src.world.collisions as collision_handler
+from src.sprites.base_sprite import BaseSprite
+
+_FRICTION_MU = 4
+_EPSILON = 1
 
 
-class Movable:
-    def __init__(self, x, y):
-        self.pos = cfg.Vec2(x, y)
-        self.vel = cfg.Vec2(0, 0)
+class MoveMixin:
+    """Mix-in class that an object whose class derives from BaseSprite would subclass to obtain move behavior."""
+    def __init__(self: typing.Union[BaseSprite, 'MoveMixin'], x: float, y: float):
+        """Assigns a position and velocity vector to """
+        self.pos = pg.math.Vector2(x, y)
+        self.vel = pg.math.Vector2(0, 0)
+        self._hit_wall = False
 
-    def move(self, dt):
+    @property
+    def hit_wall(self) -> bool:
+        """Boolean that indicates if this object has collided with a 'wall' (obstacle)."""
+        return self._hit_wall
+
+    def move(self: typing.Union[BaseSprite, 'MoveMixin'], dt: float) -> None:
+        """Updates this object's position based on the elapsed time, and updates its rectangles' positions"""
         # By default, Movable objects like bullets ignore colliders.
         self.pos += self.vel * dt
         self.rect.center = self.pos
         self.hit_rect.center = self.pos
 
-class MovableNonlinear(Movable):
-    def __init__(self, x, y):
-        Movable.__init__(self, x, y)
-        self.acc = cfg.Vec2(0, 0)
-        self._hit_wall = False
 
-    # @override
-    def move(self, collider_groups, dt):
+class MoveNonlinearMixin(MoveMixin):
+    """Mixin that derives from MoveMixin to also add acceleration to the move behavior."""
+    def __init__(self: typing.Union[BaseSprite, 'MoveNonlinearMixin'], x: float, y: float):
+        """Assigns a default 0 magnitude acceleration."""
+        MoveMixin.__init__(self, x, y)
+        self.acc = pg.math.Vector2(0, 0)
+
+    def move(self: typing.Union[BaseSprite, 'MoveNonlinearMixin'], dt: float) -> None:
+        """Updates the acceleration, velocity, and position of this object, and handles collisions."""
         # Simulate friction.
-        self.acc -= 4*self.vel
+        self.acc -= _FRICTION_MU * self.vel
 
         # Effect kinematic equations.
         self.vel += self.acc * dt
-        if self.vel.length_squared() < 1:
+        if self.vel.length_squared() < _EPSILON:
             self.vel.x = 0
             self.vel.y = 0
-            displacement = cfg.Vec2(0, 0)
+            displacement = pg.math.Vector2(0, 0)
         else:
             displacement = (self.vel * dt) + (0.5 * self.acc * dt**2)
-        self._handle_colliders(displacement, collider_groups)
-
-    def _handle_colliders(self, displacement, collider_group):
-        self._hit_wall = False
-        # Collision in x direction.
-        self.pos.x += displacement.x
-        self.hit_rect.centerx = self.pos.x
-        collider = pg.sprite.spritecollideany(self, collider_group, collide_hit_rect)
-
-        if collider:
-            # self.pos.x -= displacement.x
-            if self.pos.x < collider.rect.centerx:
-                self.pos.x = collider.rect.left - self.hit_rect.width / 2
-            else:
-                self.pos.x = collider.rect.right + self.hit_rect.width / 2
-            self.vel.x = 0
-            self.hit_rect.centerx = self.pos.x
-            self._hit_wall = True
-
-        # Collision in y direction.
-        self.pos.y += displacement.y
-        self.hit_rect.centery = self.pos.y
-        collider = pg.sprite.spritecollideany(self, collider_group, collide_hit_rect)
-
-        if collider:
-            # self.pos.y -= displacement.y
-            # self.pos.y -= self.vel.y
-            # Hit top of collider.
-            if self.pos.y < collider.rect.centery:
-                self.pos.y = collider.rect.top - self.hit_rect.height / 2
-            # Hit bottom of collider.
-            else:
-                self.pos.y = collider.rect.bottom + self.hit_rect.height / 2
-            self.vel.y = 0
-            self.hit_rect.centery = self.pos.y
-            self._hit_wall = True
-        self.rect.center = self.pos
-
-    def collided_with_wall(self):
-        return self._hit_wall
+        self._hit_wall = collision_handler.handle_obstacle_collisions(self, displacement)

@@ -1,176 +1,164 @@
+import typing
 import pygame as pg
 
 import src.config as cfg
-from src.sprites.spriteW import SpriteW, collide_hit_rect
-from src.utility.timer import Timer
-from src.sprites.attributes.movable import MovableNonlinear
-from src.sprites.attributes.rotatable import Rotatable
-from src.sprites.attributes.damageable import Damageable
+from src.sprites.base_sprite import BaseSprite
 from src.sprites.barrel import Barrel
+from src.sprites.effects.tracks import Tracks
+from src.sprites.attributes.movable import MoveNonlinearMixin
+from src.sprites.attributes.rotateable import RotateMixin
+from src.sprites.attributes.damageable import DamageMixin
+from src.utils.timer import Timer
 
 
-class Tank(SpriteW, MovableNonlinear, Rotatable, Damageable):
-    KNOCKBACK = 100
+class Tank(BaseSprite, MoveNonlinearMixin, RotateMixin, DamageMixin):
+    """Sprite class that models a Tank object."""
+    KNOCK_BACK = 100
 
     _SPEED_CUTOFF = 100
     _TRACK_DELAY = 100
-    def __init__(self, x, y, img, groups):
+
+    BIG = "big"
+    LARGE = "large"
+    HUGE = "huge"
+
+    def __init__(self, x: float, y: float, img: str, all_groups: typing.Dict[str, pg.sprite.Group]):
+        """Initializes the tank's sprite with no barrels to shoot from.
+
+        :param x: x coordinate for centering the sprite's position.
+        :param y: y coordinate for centering the sprite's position.
+        :param img: filename for the sprite's tank image.
+        :param all_groups: A dictionary of all of the game world's sprite groups.
+        """
         self._layer = cfg.TANK_LAYER
-        SpriteW.__init__(self, x, y, img,
-                            (groups['all'], groups['tanks'], groups['damageable']))
-        MovableNonlinear.__init__(self, x, y)
-        Rotatable.__init__(self)
-        Damageable.__init__(self, self.hit_rect)
-        self.groups = groups
+        BaseSprite.__init__(self, img, all_groups, all_groups['all'],  all_groups['tanks'], all_groups['damageable'])
+        MoveNonlinearMixin.__init__(self, x, y)
+        RotateMixin.__init__(self)
+        DamageMixin.__init__(self, self.hit_rect)
+        self.rect.center = (x, y)
         self.MAX_ACCELERATION = 768
         self._barrels = []
         self._items = []
-        self.hit_rect.center = self.pos
         self._track_timer = Timer()
 
-    def update(self, dt):
+    def update(self, dt: float) -> None:
+        """Rotates, moves, and handles any active in-game items that have some effect.
+
+        :param dt: Time elapsed since the tank's last update.
+        :return: None
+        """
         self.rotate(dt)
-        self.move(self.groups['obstacles'], dt)
+        self.move(dt)
         for item in self._items:
             if item.effect_subsided():
+                item.remove_effect(self)
                 self._items.remove(item)
-        can_spawn_track = self._track_timer.elapsed_time() > Tank._TRACK_DELAY
-        if self.vel.length_squared() > Tank._SPEED_CUTOFF and can_spawn_track:
+        if self.vel.length_squared() > Tank._SPEED_CUTOFF and self._track_timer.elapsed() > Tank._TRACK_DELAY:
             self._spawn_tracks()
 
     @property
-    def range(self):
+    def range(self) -> float:
+        """The shooting distance of the tank, as given by the tank's barrels."""
         return self._barrels[0].range
 
-    def pickup(self, item):
-        item.apply_effect(self)
-        if item.DURATION > 0:
-            self._items.append(item)
+    @property
+    def color(self) -> str:
+        """Returns a string representing the color of one of the tank's barrels."""
+        return self._barrels[0].color
 
-    def equip_barrel(self, barrel):
-        barrel.id = self.id
+    def pickup(self, item) -> None:
+        """Activates an item that this Tank object has picked up (collided with) and saves it.
+
+        :param item: Item sprite that can be used to apply an effect on the Tank object.
+        :return: None
+        """
+        item.activate(self)
+        self._items.append(item)
+
+    def equip_barrel(self, barrel: Barrel) -> None:
+        """Equips a new barrel to this tank."""
         self._barrels.append(barrel)
 
-    def _spawn_tracks(self):
-        Tracks(*self.pos, self.hit_rect.height, self.hit_rect.height,
-                                                    self.rot, self.groups)
+    def _spawn_tracks(self) -> None:
+        """Spawns track sprites as the tank object moves around the map."""
+        Tracks(*self.pos, self.hit_rect.height, self.hit_rect.height, self.rot, self.all_groups)
         self._track_timer.restart()
 
-    def rotate_barrel(self, dir):
-        # pass
+    def rotate_barrel(self, aim_direction: float):
+        """Rotates the all of the tank's barrels in a direction indicated by aim_direction."""
         for barrel in self._barrels:
-            barrel.rot = dir
+            barrel.rot = aim_direction
             barrel.rotate()
 
-    def get_ammo_count(self):
-        return self._barrels[0].get_ammo_count()
+    def ammo_count(self) -> int:
+        """Returns the ammo count of the tank's barrels."""
+        return self._barrels[0].ammo_count
 
-    def fire(self):
+    def fire(self) -> None:
+        """Fires a bullet from the Tank's barrels."""
         for barrel in self._barrels:
             barrel.fire()
 
-    def attempt_reload(self):
-        if self._barrels[0].can_reload():
-            self.reload()
-
-    def reload(self):
+    def reload(self) -> None:
+        """Reloads bullets for each of the bullets."""
         for barrel in self._barrels:
             barrel.reload()
 
-    def kill(self):
+    def kill(self) -> None:
+        """Removes this sprite and its barrels from all sprite groups."""
         for barrel in self._barrels:
             barrel.kill()
+        for item in self._items:
+            item.kill()
         super().kill()
 
+    @classmethod
+    def color_tank(cls, x: float, y: float, color: str, category: str, groups: typing.Dict[str, pg.sprite.Group]):
+        """Factory method for creating Tank objects."""
+        tank = cls(x, y, f"tankBody_{color}_outline.png", groups)
+        offset = pg.math.Vector2(tank.hit_rect.height // 3, 0)
+        barrel = Barrel.create_color_barrel(tank, offset, color.capitalize(), category, groups)
+        tank.equip_barrel(barrel)
+        return tank
 
-# Color barrel images.
-_BARREL_IMAGES = {}
-for color in {"Blue", "Dark", "Green", "Red", "Sand"}:
-    _BARREL_IMAGES[color] = {}
-    for type in {("standard", 1), ("power", 2), ("rapid", 3)}:
-        _BARREL_IMAGES[color][type[0]] = f"tank{color}_barrel{type[1]}.png"
+    @classmethod
+    def enemy(cls, x: float, y: float, size: str, groups: typing.Dict[str, pg.sprite.Group]) -> 'Tank':
+        """Returns a enemy tank class depending on the size parameter."""
+        if size == cls.BIG:
+            return cls.big_tank(x, y, groups)
+        elif size == cls.LARGE:
+            return cls.large_tank(x, y, groups)
+        elif size == cls.HUGE:
+            return cls.huge_tank(x, y, groups)
+        raise ValueError(f"Invalid size attribute: {size}")
 
-class ColorTank(Tank):
-    def __init__(self, x, y, color, type, groups):
-        img = f"tankBody_{color}_outline.png"
-        Tank.__init__(self, x, y, img, groups)
-        self.id = id(self)
-        # Create, position, and assign id to barrel.
-        offset = cfg.Vec2(self.hit_rect.height // 3, 0)
-        self.color = color.capitalize()
-        barrel = Barrel(self.color, type, self, offset, _BARREL_IMAGES[self.color][type], groups)
-        # barrel.rect.midtop = self.rect.center
-        barrel.id = self.id
-        self._barrels.append(barrel)
-        self.max_ammo = self._barrels[0].get_ammo_count()
+    @classmethod
+    def big_tank(cls, x: float, y: float, groups: typing.Dict[str, pg.sprite.Group]) -> 'Tank':
+        """Returns the a 'big' enemy tank."""
+        tank = cls(x, y, "tankBody_bigRed.png", groups)
+        for y_offset in (-10, 10):
+            barrel = Barrel.create_special(tank, pg.math.Vector2(0, y_offset), "Dark", groups, special=1)
+            tank.equip_barrel(barrel)
+        return tank
 
+    @classmethod
+    def large_tank(cls, x: float, y: float, groups: typing.Dict[str, pg.sprite.Group]) -> 'Tank':
+        """Returns the a 'large' enemy tank."""
+        tank = cls(x, y, "tankBody_darkLarge.png", groups)
+        tank.MAX_ACCELERATION *= 0.9
+        for y_offset in (-10, 10):
+            barrel = Barrel.create_special(tank, pg.math.Vector2(0, y_offset), "Dark", groups, special=4)
+            tank.equip_barrel(barrel)
+        return tank
 
-class BigTank(Tank):
-    ACC_MULTIPLIER = 1
-    _IMAGE = "tankBody_bigRed.png"
-    def __init__(self, x, y, groups):
-        Tank.__init__(self, x, y, BigTank._IMAGE, groups)
-        self.id = id(self)
-        self.equip_barrel(Barrel("Dark", "standard", self, cfg.Vec2(0, -10),"specialBarrel1.png", groups))
-        self.equip_barrel(Barrel("Dark", "standard", self, cfg.Vec2(0, 10),"specialBarrel1.png", groups))
-        barrel.flip(True, False)
-        # barrel.orig_image = barrel.image
-        self.equip_barrel(barrel)
-        self.max_ammo = self._barrels[0].get_ammo_count()
-        self.color = "Dark"
-        self.MAX_ACCELERATION *= BigTank.ACC_MULTIPLIER
-
-
-class LargeTank(Tank):
-    ACC_MULTIPLIER = 0.9
-    _IMAGE = "tankBody_darkLarge.png"
-    def __init__(self, x, y, groups):
-        Tank.__init__(self, x, y, LargeTank._IMAGE, groups)
-        self.id = id(self)
-        self.equip_barrel(Barrel("Dark", "standard", self, cfg.Vec2(0, -10),"specialBarrel4.png", groups))
-        barrel = Barrel("Dark", "standard", self, cfg.Vec2(0, 10),"specialBarrel4.png", groups)
-        barrel.flip(True, False)
-        # barrel.orig_image = barrel.image
-        self.equip_barrel(barrel)
-        self.max_ammo = self._barrels[0].get_ammo_count()
-        self.color = "Dark"
-        self.MAX_ACCELERATION *= LargeTank.ACC_MULTIPLIER
-
-class HugeTank(Tank):
-    ACC_MULTIPLIER = 0.8
-    _IMAGE = "tankBody_huge_outline.png"
-    def __init__(self, x, y, groups):
-        Tank.__init__(self, x, y, HugeTank._IMAGE, groups)
-        self.id = id(self)
-        self.equip_barrel(Barrel("Dark", "standard", self, cfg.Vec2(-10, 0),"specialBarrel1.png", groups))
-        self.equip_barrel(Barrel("Dark", "standard", self, cfg.Vec2(20, -10),"specialBarrel4.png", groups))
-        barrel = Barrel("Dark", "standard", self, cfg.Vec2(20, 10),"specialBarrel4.png", groups)
-        barrel.flip(True, False)
-        # barrel.orig_image = barrel.image
-        self.equip_barrel(barrel)
-        self.max_ammo = self._barrels[0].get_ammo_count()
-        self.color = "Dark"
-        self.MAX_ACCELERATION *= HugeTank.ACC_MULTIPLIER
-
-
-class Tracks(SpriteW):
-    IMAGE = 'tracksSmall.png'
-    IMG_ROT = -90
-    def __init__(self, x, y, scale_h, scale_w, rot, groups):
-        self._layer = cfg.TRACKS_LAYER
-        SpriteW.__init__(self, x, y, Tracks.IMAGE, groups['all'])
-        # Transform and recenter.
-        old_center = self.rect.center
-        self.image = pg.transform.rotate(self.image, rot - Tracks.IMG_ROT)
-        self.image = pg.transform.scale(self.image, (scale_h, scale_w))
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center
-        self._alpha = 255
-
-    def update(self, dt):
-        # Fade effect.
-        if self._alpha > 0:
-            self._alpha -= 4
-            self.image.set_alpha(self._alpha)
-        else:
-            self.kill()
+    @classmethod
+    def huge_tank(cls, x: float, y: float, groups: typing.Dict[str, pg.sprite.Group]) -> 'Tank':
+        """Returns the a 'huge' enemy tank."""
+        tank = cls(x, y, "tankBody_huge_outline.png", groups)
+        tank.MAX_ACCELERATION *= 0.8
+        for y_offset in (-10, 10):
+            barrel = Barrel.create_special(tank, pg.math.Vector2(20, y_offset), "Dark", groups, special=4)
+            tank.equip_barrel(barrel)
+        barrel = Barrel.create_special(tank, pg.math.Vector2(-10, 0), "Dark", groups, special=1)
+        tank.equip_barrel(barrel)
+        return tank

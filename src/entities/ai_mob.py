@@ -1,36 +1,50 @@
-import src.config as cfg
+import abc
+import pygame as pg
 
-class AIMob:
-    def __init__(self, target):
-        self._target = target
+import src.utils.constants as constants
+
+
+class AIMob(metaclass=abc.ABCMeta):
+    """Abstract base class for a game AI."""
+    def __init__(self, sprite, target):
+        """Sets the sprite to be controlled by the AI and the sprite that the AI is targeting.
+
+        :param sprite: pygame Sprite to be controlled by AI
+        :param target: pygame Sprite to be targeted by AI
+        """
+        self._sprite = sprite
+        self.target = target
         self._state = None
-        self._sprite = None
-        self._ray_to_target = None
-
-    @property
-    def target(self):
-        return self._target
 
     @property
     def state(self):
         return self._state
 
-    def update(self, dt):
-        self._ray_to_target = self._target.pos - self._sprite.pos
+    @state.setter
+    def state(self, state):
+        """Transitions the AI from one state to another."""
+        if self._state:
+            self._state.exit()
+        self._state = state
+        self._state.enter()
+
+    @property
+    def sprite(self):
+        return self._sprite
+
+    @property
+    def ray_to_target(self) -> pg.math.Vector2:
+        return self.target.pos - self._sprite.pos
+
+    def update(self, dt: float) -> None:
+        """Updates the behavior of the AI based on the current state."""
         self._state.update(dt)
 
-    def alive(self):
-        return self._sprite.alive()
+    def is_target_in_range(self) -> None:
+        """Determines if the target is in range."""
+        return self.target.alive() and \
+            self.ray_to_target.length_squared() < self._sprite.range ** 2
 
-    def draw_health(self, surface, camera):
-        self._sprite.draw_health(surface, camera)
-
-    def set_state(self, state):
-        self._state = state(self)
-
-    def is_target_in_range(self):
-        return self._target.alive() and \
-            self._ray_to_target.length_squared() < self._sprite.range ** 2
-
-    def angle_to_target(self):
-        return self._ray_to_target.angle_to(cfg.UNIT_VEC)
+    def angle_to_target(self) -> float:
+        """Determines the direction of the target relative to AI's sprite."""
+        return self.ray_to_target.angle_to(constants.UNIT_VEC)

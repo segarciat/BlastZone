@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.3.3" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="64" tileheight="64" infinite="0" nextlayerid="3" nextobjectid="34">
+ <tileset firstgid="1" source="KenneyTDTankTerrain.tsx"/>
+ <layer id="1" name="ground" width="32" height="32">
+  <data encoding="csv">
+11,1,1,1,1,1,11,11,1,1,11,1,11,1,11,11,1,1,1,1,1,1,1,1,11,1,11,1,11,1,1,11,
+1,11,1,11,1,1,1,1,11,1,1,1,1,1,1,11,11,1,1,1,11,1,1,1,11,1,1,11,1,1,1,11,
+1,11,11,1,11,1,11,1,1,1,11,1,11,11,11,11,1,1,11,11,11,1,11,11,1,11,11,1,1,1,1,1,
+11,1,1,11,1,1,11,1,11,1,1,1,1,1,1,1,1,1,1,1,1,11,11,1,11,1,11,1,11,1,1,11,
+1,11,11,1,11,1,11,1,11,1,1,1,1,1,11,1,11,1,1,11,11,11,11,11,11,11,1,11,1,1,11,1,
+1,1,11,1,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,11,11,11,1,11,1,1,1,1,11,1,11,1,
+1,11,1,1,1,1,11,1,11,1,1,1,1,1,1,1,1,11,1,1,11,1,1,1,11,11,1,1,11,1,1,1,
+11,1,1,1,1,1,1,14,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,15,1,1,1,1,1,1,11,
+11,11,11,1,1,11,11,2,1,11,1,11,1,1,1,1,1,11,11,1,11,1,1,1,2,1,1,11,11,1,11,1,
+1,1,11,1,11,1,1,2,1,11,11,11,1,11,1,11,11,1,1,1,1,1,1,1,2,1,11,1,1,1,1,11,
+1,11,1,1,1,11,1,2,1,1,1,1,11,11,11,11,11,11,1,1,1,11,1,11,2,1,11,1,11,11,11,1,
+1,1,1,1,11,1,1,2,1,1,11,11,11,1,1,1,1,1,1,1,1,1,11,1,2,11,1,11,11,1,1,1,
+1,1,1,1,1,11,1,2,11,11,1,11,1,1,1,1,1,11,1,1,1,11,1,1,2,11,11,1,11,1,11,1,
+1,11,1,1,1,1,1,2,1,11,11,1,1,1,11,1,1,1,1,1,1,1,1,1,2,11,1,11,11,1,11,1,
+1,1,1,1,1,11,11,2,1,1,11,11,11,1,11,1,1,11,1,1,1,1,11,1,2,1,1,1,1,1,11,1,
+1,11,1,1,1,1,1,2,1,11,1,11,11,1,1,21,21,1,11,1,1,1,11,1,2,11,1,1,1,1,1,1,
+1,11,1,1,1,1,1,2,1,1,11,11,11,1,1,21,21,11,1,1,1,11,1,1,2,1,1,1,1,1,1,1,
+1,1,1,1,1,1,11,2,11,1,11,1,1,1,11,11,11,1,1,1,1,11,1,1,2,1,1,1,1,11,11,1,
+1,11,1,1,1,11,11,2,11,1,1,11,11,11,1,11,1,1,1,1,1,11,1,1,2,1,11,1,1,1,1,11,
+11,1,1,1,1,1,1,2,1,1,1,1,1,1,1,11,11,11,11,1,11,1,1,1,2,1,1,1,1,11,1,1,
+11,1,1,1,1,1,1,2,11,1,1,11,1,1,1,1,1,1,11,11,1,1,1,1,2,1,1,11,1,1,11,1,
+11,1,1,1,1,1,11,2,1,11,1,11,1,1,1,11,1,11,11,1,1,1,11,1,2,11,1,1,11,11,11,1,
+1,1,1,1,11,1,1,2,1,1,1,1,11,1,1,1,1,11,11,11,11,1,1,1,2,1,1,1,1,11,11,11,
+1,11,1,1,1,1,1,2,11,11,1,1,1,1,1,11,1,11,1,1,1,1,11,11,2,11,11,11,1,1,1,1,
+1,1,1,1,1,1,1,3221225487,3,3,3,3,3,3,3,6,6,3,3,3,3,3,3,3,2684354575,1,1,1,1,11,1,11,
+11,11,1,11,1,11,1,1,1,11,1,11,1,1,11,11,1,1,1,1,11,11,1,1,1,1,1,1,1,11,11,11,
+1,1,11,11,1,11,1,1,11,11,11,1,1,11,11,1,1,11,1,1,1,1,1,11,1,11,11,11,1,11,1,11,
+1,11,1,1,11,11,11,1,1,1,1,11,1,11,1,1,11,11,1,1,1,1,11,11,11,11,11,11,1,1,11,11,
+11,1,1,11,1,11,11,11,11,1,1,1,11,1,11,1,1,1,1,11,1,1,1,11,1,11,1,11,1,11,1,1,
+11,11,1,1,11,11,11,11,1,1,11,11,1,1,1,11,11,1,1,11,1,1,11,1,11,11,11,1,11,1,11,11,
+1,1,11,1,1,1,11,1,1,11,1,1,1,11,1,1,1,1,1,11,1,11,1,1,1,11,1,1,11,11,1,1,
+11,11,1,11,11,1,1,1,11,1,11,1,1,1,1,1,11,1,11,1,1,11,11,11,1,11,11,11,1,11,11,11
+</data>
+ </layer>
+ <objectgroup id="2" name="objects">
+  <object id="4" name="turret" x="1005" y="1004" width="41" height="42">
+   <properties>
+    <property name="category" value="rapid"/>
+    <property name="special" value="1"/>
+   </properties>
+  </object>
+  <object id="6" name="enemy_tank" x="1534" y="958" width="62" height="66">
+   <properties>
+    <property name="category" value="standard"/>
+    <property name="size" value="huge"/>
+   </properties>
+  </object>
+  <object id="7" name="ai_patrol_point" x="450" y="452" width="58" height="56">
+   <properties>
+    <property name="path_index" value="3"/>
+   </properties>
+  </object>
+  <object id="8" name="ai_patrol_point" x="1540" y="446" width="58" height="56">
+   <properties>
+    <property name="path_index" value="3"/>
+   </properties>
+  </object>
+  <object id="9" name="ai_patrol_point" x="1540" y="446" width="58" height="56">
+   <properties>
+    <property name="path_index" value="4"/>
+   </properties>
+  </object>
+  <object id="11" name="ai_patrol_point" x="1538" y="1538" width="58" height="56">
+   <properties>
+    <property name="path_index" value="1"/>
+   </properties>
+  </object>
+  <object id="12" name="ai_patrol_point" x="446" y="1538" width="58" height="56">
+   <properties>
+    <property name="path_index" value="2"/>
+   </properties>
+  </object>
+  <object id="14" name="player" x="198" y="1004" width="48" height="42">
+   <properties>
+    <property name="category" value="standard"/>
+    <property name="color" value="red"/>
+   </properties>
+  </object>
+  <object id="16" name="box_spawn" x="1294" y="1420" width="38" height="38"/>
+  <object id="18" name="box_spawn" x="720" y="588" width="38" height="38"/>
+  <object id="19" name="box_spawn" x="1806" y="138" width="38" height="38"/>
+  <object id="20" name="small_tree" x="332" y="150" width="38" height="32"/>
+  <object id="21" name="small_tree" x="378" y="150" width="38" height="32"/>
+  <object id="22" name="small_tree" x="286" y="152" width="38" height="32"/>
+  <object id="23" name="small_tree" x="288" y="190" width="38" height="32"/>
+  <object id="24" name="small_tree" x="1806" y="340" width="38" height="32"/>
+  <object id="25" name="small_tree" x="976" y="1362" width="38" height="32"/>
+  <object id="26" name="small_tree" x="334" y="1744" width="38" height="32"/>
+  <object id="27" name="small_tree" x="460" y="1868" width="38" height="32"/>
+  <object id="28" name="small_tree" x="786" y="1872" width="38" height="32"/>
+  <object id="29" name="small_tree" x="1418" y="1874" width="38" height="32"/>
+  <object id="30" name="small_tree" x="1742" y="918" width="38" height="32"/>
+  <object id="31" name="small_tree" x="148" y="598" width="38" height="32"/>
+  <object id="32" name="small_tree" x="1292" y="604" width="38" height="32"/>
+  <object id="33" name="small_tree" x="654" y="1168" width="38" height="32"/>
+ </objectgroup>
+</map>

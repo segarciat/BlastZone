@@ -1,144 +1,104 @@
-import math
+import typing
 import pygame as pg
 
 import src.config as cfg
-import src.utility.sound_loader as sfx_loader
-from src.sprites.spriteW import SpriteW
-from src.sprites.attributes.rotatable import Rotatable
+import src.services.sound as sfx_loader
+import src.utils.helpers as helpers
+from src.sprites.base_sprite import BaseSprite
 from src.sprites.bullet import Bullet
-from src.sprites.obstacles import Barricade
-from src.sprites.attributes.damageable import Damageable
-from src.utility.timer import Timer
+from src.sprites.attributes.rotateable import RotateMixin
+from src.sprites.effects.muzzle_flash import MuzzleFlash
+from src.utils.timer import Timer
 
 _STATS = {
-          "standard": {"fire_delay": 350, "max_ammo": 20},
-          "rapid": {"fire_delay": 250, "max_ammo": 20 },
-          "power": {"fire_delay": 400, "max_ammo": 20}
+    "standard": {"fire_delay": 350, "max_ammo": 20},
+    "rapid": {"fire_delay": 250, "max_ammo": 20},
+    "power": {"fire_delay": 400, "max_ammo": 20}
 }
 
-_BARREL_IMAGES = {}
-for color in {"Blue", "Dark", "Green", "Red", "Sand"}:
-    _BARREL_IMAGES[color] = {}
-    for type in {("standard", 1), ("power", 2), ("rapid", 3)}:
-        _BARREL_IMAGES[color][type[0]] = f"tank{color}_barrel{type[1]}.png"
 
-
-RELOAD_DURATION = 10000
-
-
-class Barrel(SpriteW, Rotatable):
+class Barrel(BaseSprite, RotateMixin):
+    """Sprite class that models a Barrel object."""
     _FIRE_SFX = 'shoot.wav'
-    def __init__(self, color, type, parent, offset, image, groups):
+
+    def __init__(self, tank, offset: pg.math.Vector2, image: str, color: str,
+                 category: str, all_groups: typing.Dict[str, pg.sprite.Group]):
+        """Fills up the Barrel's ammo and centers its position on its parent."""
         self._layer = cfg.BARREL_LAYER
-        SpriteW.__init__(self, *parent.rect.center, image, (groups['all'],))
-        Rotatable.__init__(self)
-        self.groups = groups
-
+        BaseSprite.__init__(self, image, all_groups, all_groups['all'])
+        RotateMixin.__init__(self)
         # Bullet parameters.
-        self._type = type
+        self._category = category
         self._color = color
-        self._ammo_count = _STATS[self._type]["max_ammo"]
+        self._ammo_count = _STATS[self._category]["max_ammo"]
 
-        # Parameters used for position.
-        self._parent = parent
+        # Parameters used for barrel position.
+        self._parent = tank
+        self.rect.center = tank.rect.center
         self._offset = offset
 
-        self._fire_delay = _STATS[self._type]["fire_delay"]
+        self._fire_delay = _STATS[self._category]["fire_delay"]
         self._fire_timer = Timer()
-        self._fire_sfx = sfx_loader.get_sfx(Barrel._FIRE_SFX)
-
-    def update(self, dt):
-        self.rect.center = cfg.Vec2(*self._parent.rect.center) + \
-                                    self._offset.rotate(-self.rot)
-    @property
-    def range(self):
-        return Bullet.range(self._type)
 
     @property
-    def fire_delay(self):
-        return self._fire_delay
+    def color(self) -> str:
+        """Returns a string representing the barrel's color."""
+        return self._color
 
-    @fire_delay.setter
-    def fire_delay(self, new_fire_delay):
-        self._fire_delay = new_fire_delay
-
-    def fire(self):
-        if self._fire_timer.elapsed_time() > self._fire_delay:
-            self._fire_timer.restart()
-            self._spawn_bullet()
-            self._fire_sfx.play()
-
-    def _spawn_bullet(self):
-        fire_pos = cfg.Vec2(*self.rect.center) + \
-                            cfg.Vec2(self.hit_rect.height, 0).rotate(-self.rot)
-        Bullet(*fire_pos, self.rot, self._type, self._color, self.id, self.groups)
-        MuzzleFlash(*fire_pos, self.rot, self.groups)
-        self._ammo_count -= 1
-
-    def can_reload(self):
-        return self._ammo_count == 0 and self._fire_timer.elapsed_time() > RELOAD_DURATION
-
-    def get_ammo_count(self):
+    @property
+    def ammo_count(self) -> int:
+        """Returns the current ammo count for this barrel."""
         return self._ammo_count
 
-    def reload(self):
-        self._ammo_count = _STATS[self._type]["max_ammo"]
+    @property
+    def range(self) -> float:
+        """Returns the fire range of the barrel."""
+        return Bullet.range(self._category)
 
-    def kill(self):
+    @property
+    def fire_delay(self) -> float:
+        """Returns the number of milliseconds until barrel can fire again."""
+        return self._fire_delay
+
+    def update(self, dt: float) -> None:
+        """Updates the barrel's position by centering on the parent's position (accounting for the offset)."""
+        vec = self._offset.rotate(-self.rot)
+        self.rect.centerx = self._parent.rect.centerx + vec.x
+        self.rect.centery = self._parent.rect.centery + vec.y
+
+    def fire(self) -> None:
+        """Fires a Bullet if enough time has passed and if there's ammo."""
+        if self._ammo_count > 0 and self._fire_timer.elapsed() > self._fire_delay:
+            self._spawn_bullet()
+            sfx_loader.play(Barrel._FIRE_SFX)
+            self._fire_timer.restart()
+
+    def _spawn_bullet(self) -> None:
+        """Spawns a Bullet object from the Barrel's nozzle."""
+        fire_pos = pg.math.Vector2(self.hit_rect.height, 0).rotate(-self.rot)
+        fire_pos.xy += self.rect.center
+        Bullet(fire_pos.x, fire_pos.y, self.rot, self._color, self._category, self._parent, self.all_groups)
+        MuzzleFlash(*fire_pos, self.rot, self.all_groups)
+        self._ammo_count -= 1
+
+    def reload(self) -> None:
+        """Reloads the Barrel to have maximum ammo"""
+        self._ammo_count = _STATS[self._category]["max_ammo"]
+
+    def kill(self) -> None:
         self._parent = None
         super().kill()
 
+    @classmethod
+    def create_color_barrel(cls, tank, offset: pg.math.Vector2, color: str, category: str,
+                            groups: typing.Dict[str, pg.sprite.Group]) -> 'Barrel':
+        """Creates a color barrel object."""
+        return cls(tank, offset, f"tank{color.capitalize()}_barrel{cfg.CATEGORY[category]}.png", color, category, groups)
 
-class SpecialBarrel(Barrel):
-    def __init__(self, parent, offset, type, style, groups):
-        """ type  is "standard", "power", or "rapid" """
-        img_file = f'specialBarrel{style}.png'
-        Barrel.__init__(self, "Dark", type, parent, offset, img_file, groups)
-
-
-class Turret(Barricade, Damageable):
-    def __init__(self, x, y, type, style, groups):
-        Barricade.__init__(self, x, y, groups)
-        Damageable.__init__(self, self.hit_rect)
-        groups['damageable'].add(self)
-        self._barrel = SpecialBarrel(self, cfg.Vec2(0, 0), type, style, groups)
-        self.pos = self.rect.center
-        # Bullets spawned by turret won't hurt turret, but hurts other sprites.
-        self.id = id(self)
-        self._barrel.id = self.id
-
-    def kill(self):
-        self._barrel.kill()
-        super().kill()
-
-    @property
-    def range(self):
-        return self._barrel.range
-
-    def get_ammo_count(self):
-        return self._barrel.get_ammo_count()
-
-    def attempt_reload(self):
-        if self._barrel.can_reload():
-            self._barrel.reload()
-
-    def fire(self, dir):
-        self._barrel.rot = dir
-        self._barrel.rotate()
-        self._barrel.fire()
-
-
-class MuzzleFlash(SpriteW):
-    IMG_ROT = -90
-    FLASH_DURATION = 25
-    IMAGE = 'shotLarge.png'
-    def __init__(self, x, y, rot, groups):
-        self._layer = cfg.EFFECTS_LAYER
-        SpriteW.__init__(self, x, y, MuzzleFlash.IMAGE, groups['all'])
-        self.rotate_image(rot - MuzzleFlash.IMG_ROT)
-        # Rotatable.rotate_image(self, self.image, rot - MuzzleFlash.IMG_ROT)
-        self._spawn_timer = Timer()
-
-    def update(self, dt):
-        if self._spawn_timer.elapsed_time() > MuzzleFlash.FLASH_DURATION:
-            self.kill()
+    @classmethod
+    def create_special(cls, tank, offset: pg.math.Vector2, color: str,
+                       all_groups: typing.Dict[str, pg.sprite.Group], special) -> 'Barrel':
+        """Creates a special barrel object."""
+        barrel = cls(tank, offset, f"specialBarrel{special}.png", color, "standard", all_groups)
+        helpers.flip(barrel, orig_image=barrel.image, x_reflect=True, y_reflect=False)
+        return barrel
