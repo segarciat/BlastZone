@@ -27,6 +27,10 @@ class Item(BaseSprite, metaclass=abc.ABCMeta):
         self._step = 0
         self._direction = 1
 
+    @property
+    def spawn_pos(self) -> pg.math.Vector2:
+        return self._spawn_pos
+
     def update(self, dt: float) -> None:
         """Floating animation for an item that has spawned. Credits to Chris Bradfield from KidsCanCode."""
         # Shift bobbing y offset to bob about item's original center.

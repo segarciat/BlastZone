@@ -19,8 +19,7 @@ from src.utils.timer import Timer
 
 class Level:
     """Class that creates, draws, and updates the game world, including the map and all sprites."""
-    _MAX_ITEMS = 1
-    _ITEM_RESPAWN_TIME = 5000
+    _ITEM_RESPAWN_TIME = 30000  # 1 minute.
 
     def __init__(self, level_file: str):
         """Creates a map and creates all of the sprites in it.
@@ -102,7 +101,7 @@ class Level:
     def _can_spawn_item(self) -> bool:
         """"Checks if a new item can be spawned."""
         return self._item_spawn_timer.elapsed() > Level._ITEM_RESPAWN_TIME and \
-            len(self._groups['item_boxes']) < Level._MAX_ITEMS
+            len(self._groups['items']) + len(self._groups['item_boxes']) < len(self._item_spawn_positions)
 
     def is_player_alive(self) -> bool:
         """Checks if the player's tank has been defeated."""
@@ -131,14 +130,24 @@ class Level:
         self._groups['all'].update(dt)
         # Update list of ai mobs.
         self._camera.update()
+
+        game_items_count = len(self._groups['items'])
         collision_handler.handle_collisions(self._groups)
-        for box in self._groups['item_boxes']:
-            if box.is_broken():
-                self._item_spawn_timer.restart()
+        if game_items_count > 0 and len(self._groups['items']) < game_items_count:
+            self._item_spawn_timer.restart()
         # See if it's time to spawn a new item.
         if self._can_spawn_item():
-            x, y, = random.choice(self._item_spawn_positions)
-            ItemBox.spawn(x, y, self._groups)
+            available_positions = self._item_spawn_positions.copy()
+            for x, y in self._item_spawn_positions:
+                for sprite in self._groups['items']:
+                    if sprite.spawn_pos.x == x and sprite.spawn_pos == y and (x, y) in available_positions:
+                        available_positions.remove((x, y))
+                for sprite in self._groups['item_boxes']:
+                    if sprite.rect.center == (x, y) and (x, y) in available_positions:
+                        available_positions.remove((x, y))
+            if available_positions:
+                x, y, = random.choice(available_positions)
+                ItemBox.spawn(x, y, self._groups)
 
         # Filter out any AIs that have been defeated.
         self._ai_mobs = [ai for ai in self._ai_mobs if ai.sprite.alive()]

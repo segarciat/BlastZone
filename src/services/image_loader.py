@@ -52,7 +52,7 @@ class _ImageLoader:
         for sprite_sheet in self._sprite_sheets:
             if name in sprite_sheet['rectangles']:
                 return _ImageLoader._create_surface(sprite_sheet['surf'], sprite_sheet['rectangles'][name])
-        return self._extra_images[name]
+        return self._extra_images[name].copy()
 
     @classmethod
     def _create_surface(cls, sheet_surf: pg.Surface, rect: tuple) -> pg.Surface:

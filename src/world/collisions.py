@@ -14,7 +14,7 @@ def collide_hit_rect(sprite_a, sprite_b) -> bool:
     return sprite_a.hit_rect.colliderect(sprite_b.hit_rect)
 
 
-def bullet_collide_owner(bullet, sprite) -> bool:
+def bullet_collide_owner(sprite, bullet) -> bool:
     """Checks whether a Bullet has hit a sprite that didn't fire the bullet.
 
     :param bullet: The Bullet object involved in the collision check.
@@ -91,24 +91,22 @@ def handle_collisions(groups) -> None:
         for item in items:
             tank.pickup(item)
 
-    # Concurrent modification of iterator issue...?
-    for bullet in list(groups['bullets']):
-        # Destroy boxes to spawn new items
-        for box in groups['item_boxes']:
-            if bullet_collide_owner(bullet, box):
-                bullet.kill()
-                box.wear_out()
+    # Damage boxes or destroy if appropriate.
+    hits = pg.sprite.groupcollide(groups['item_boxes'], groups['bullets'], False, True, collide_hit_rect)
+    for box, bullets in hits.items():
+        box.wear_out()
+        if not box.alive():
+            break
 
-        # Hitting obstacles makes the bullet disappear.
-        for obstacle in groups['obstacles']:
-            if bullet_collide_owner(bullet, obstacle):
-                bullet.kill()
+    # Handle sprites that take damage from bullets.
+    hits = pg.sprite.groupcollide(groups['damageable'], groups['bullets'], False, True, bullet_collide_owner)
+    for sprite, bullets in hits.items():
+        for bullet in bullets:
+            bullet.kill()
+            Explosion(bullet.pos.x, bullet.pos.y, groups)
+            sprite.inflict_damage(bullet.damage)
+            if sprite.health <= 0:
+                sprite.kill()
 
-        # Damageable things (likely turret and tanks).
-        for sprite in groups['damageable']:
-            if bullet_collide_owner(bullet, sprite):
-                bullet.kill()
-                Explosion(bullet.pos.x, bullet.pos.y, groups)
-                sprite.inflict_damage(bullet.damage)
-                if sprite.health <= 0:
-                    sprite.kill()
+    # Bullets that hit other obstacles merely disappear.
+    pg.sprite.groupcollide(groups['obstacles'], groups['bullets'], False, True, collide_hit_rect)
