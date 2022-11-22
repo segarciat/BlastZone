@@ -3,8 +3,8 @@ import os
 
 
 # Screen Settings.
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = 768
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 800
 TITLE = "Blast Zone"
 FPS = 60
 

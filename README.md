@@ -2,6 +2,10 @@
 
 A 2D topdown tank game application.
 
+# Sample Image
+
+![Blast Zone Sample](./blast-zone-sample.png)
+
 ## Description
 
 Blast Zone is a python game application made with pygame in which a player can control a tank with their mouse and keyboard.
